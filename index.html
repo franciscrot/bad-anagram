@@ -43,6 +43,7 @@
       .controls {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 0.6rem;
         margin: 0.8rem 0;
       }
@@ -56,6 +57,29 @@
         cursor: pointer;
       }
       button.secondary { background: #ffd478; }
+      .status-indicator {
+        display: none;
+        font-size: 0.85rem;
+        opacity: 0.82;
+        margin-left: 0.25rem;
+      }
+      .status-indicator.visible {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .status-indicator::before {
+        content: "";
+        width: 0.45rem;
+        height: 0.45rem;
+        border-radius: 50%;
+        background: #a5d8ff;
+        animation: pulse 0.9s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.95); }
+        50% { opacity: 1; transform: scale(1.1); }
+      }
       #output {
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.24);
@@ -101,6 +125,7 @@
       <div class="controls">
         <button id="solve">Generate</button>
         <button id="reroll" class="secondary">Reroll</button>
+        <span id="status-indicator" class="status-indicator" aria-live="polite">Working…</span>
       </div>
       <div id="output"><div class="empty">Your chunks, approximate anagrams, and edit estimates will appear here.</div></div>
     </main>
