@@ -11,7 +11,7 @@ function parseWordPool(raw, splitter = /\s+/) {
     .filter((word) => /^[a-z][a-z'-]*$/.test(word));
 }
 
-const BASE_WORD_POOL = `
+const BASE_WORD_POOL_RAW = String.raw`
 a ash alarm arm alm aleph able about above act actor acute adapt admit after again agent agree ahead air alert alpha also amber among angle ankle apple apron arena arise around aside atom attic audio aura avoid awake axis badge baker basic basin beach beacon beaker beard begin being berry beyond black blade blaze blend balm blood bead brief bough bale balefire bloom blush bloom bonus bound brave brick bridge brisk bronze cabin cable camel candy canon carve cause cedar chain chair chalk charm chase check chest chief choir chore civic claim class clean clear clerk clock close cloud coast cocoa comet camber candle candlelit candelabra crow caul coral couch count craft crane crest crowd crown cycle daily dance datum dawn dealer delta denim depth devil deer dart delta devise dweomer dale dandle diary diner drift drive eager eagle early earth easier elbow elder elect elite ember enjoy enter epoch eel elm elk equal error essay ether ethic event every exact exile extra faun fawn fey fire fretted fen faith fancy favor fiber field fiery final flame flash fleet flora focus force forge frame fresh front frost fruit gamma garden gather giant given glass globe glory grace grain grand grant graph green grove ghee glam ghoul garden guard guide habit happy harbor haven heart hedge hello hence honor house human humor ideal image index inner input ivory jelly judge juice knife known labor laser later layer learn lemon level light limit linear logic lucky lunar magic maker manor maple march marina marker matter meadow metal meter micro might minor model money month moral motor mount movie music narrow native nectar nerve never noble noise north novel ocean often olive opera orbit other panel paper party peace pearl pedal phase phone purl pixel pixie pale painterly poise petite piano piece pilot pine pitch plain planet plaza poet point polar power press prime prior prize pulse queen quick quiet radio raise rapid raven reach ready realm relay renew rider river robin robust roman route royal rural scale scene scope score scout sense serve shade shadow shape share shelf shift shine shore short signal silver simple skill slate sleep slice smart smile smoke solid sound spark spice spirit split spell spellcaster seed soften sweetness sauna staple stent skink sport spring square stable stage stair stand steam steel stone storm story strand stream style sugar sunny table teach tempo thank theme thorn throw tiger token tone torch total tower trace track trail trend trial tribe trust union unity urban value vapor verse vital vivid vocal voice wagon watch water wheat wider window world worth woven writer yellow young youth zesty
 `.trim().split(/\s+/);
 
@@ -27,6 +27,8 @@ const BASE_WORD_POOL_EXPANSION = parseWordPool(BASE_WORD_POOL_EXPANSION_RAW);
 const BASE_WORD_POOL_EXPANSION_RAW_2 = String.raw`
 hilltop Himalayas hinge hinged Hinterlands hinting hippopotamus historically histrionic HIV hives hoar hoarfrost Hoard hoarding hoax Hobart hobble hobo hock hodge hoes hogshead holier holler Hollow holly holster Holy Homage home-made homesickness homespun homicide homily hominem homo homogeneous Honduras honeycomb honeysuckle honneur Honolulu Honor Honor Honor Honorguard hood Hoods hook Hook or Crook Hook or Crook hoops hoot hoover hopper hopping hops Horn horny Horologist Horology horoscope horreurs horse trainer horsehair horseshoe horus Hosea hosiery hostage hostel hostelry hostler hôte hottentot houseboat householder houseless housework housing Housteads how's Howden howitzer howls hu hub huddle Hue and Cry Hue and Cry huh hulk humanitarian humanities humans humdrum humid humidity humiliate humorously hump humped hun hunch Hundred hundredweight Hundredweight Hunter hunter Huntington Huntress hunts huntsman Hurd hurrah hurries husbandman husk hussar hussy hustle hw hyacinth hybrid hydra Hydralith Overcast overcrowded overdo overdone overdue overhaul overhear overlaid overlap overlay overloaded Overlord overpower overran overrated override overruling overrunning overseas overshadow oversight overt overtakes overthrew overtime overture Overture overturn overweening overworked ovum Ow oxfordshire Oxgang oxidation oyendo Oyer et terminer oynter oyster raker oysterer pacify pact paddling paddock padlock paganism pagoda painstaking painter paired pajamas pakistan Paladin palanquin palatable palatial Palatinate palaver Palermo palette pali palisade palisades pallet palliate palliation palma palmer palmy palomino palpitation palsy panacea Panacea pandemonium pander panegyric Pangea Pannage panoply pansies pant pantheism pantheon Pantheon pap papacy papered paprika papyrus paraffin paragon Paragon Paraguay parallelogram paralyze paramour paraphernalia paraphrase parasite parasitic Parchment pard pardoner pare parenthesis Pariah parish priest parity parked parker parlance parochial parody parry parsimonious parsimony partaken partakes participating participle parvenu pasha passable Passage passageway passer passer-by passim passively passover pasty patchwork pate pater paternity pathological pathology patio patois patrimony patriot's patrol patronize patter paucity Pauldron paulo paunch pave pavia pawnbroker Payage pc PCB pe pea peacemaker peaked peanuts pearl pease pease peat péché Peck pecking pedagogue pedal pedant pedantic pedantry peddler peddler pedestrian peeps peer peerage pegasus peine Peleus pelf pell-mell pellucid pelt pelvis pendulous penguin penis penitentiary penknife penmanship pennant pennon pennons pent-up Pentateuch Pentecost Penumbral Penumbramancer Penumbramancy penury peppermint perambulator perceptive percer percussion pere perforated perfunctory Perilous periodically perishable perishes perjury permissible peroration perpetrator perplex pers persephone persona personification personnel perspicacity perspicuity pert pertain Perth pertinacious pertinacity pertinent Perugia peruse perusing pervade perversion pervert pesos pessimist pessimistic pest pestilent pestle pests petal peterborough petiole petit petite petrograd petrol pets petting petulant pewter Ph.D. phaeton phalanx phantasm Phantasmal phantasy pheasant phenomenal phial philanthropist Philemon Philistines phillip philology philosopher philosophiques phlegm phlegmatic Phoenicia phoenix phonetic phonograph phosphate phosphorescence
 `.trim();
+
+const BASE_WORD_POOL = parseWordPool(BASE_WORD_POOL_RAW);
 
 const BASE_WORD_POOL_EXPANSION_2 = parseWordPool(BASE_WORD_POOL_EXPANSION_RAW_2);
 
@@ -226,8 +228,21 @@ const sourceInput = document.getElementById("source");
 const output = document.getElementById("output");
 const solveBtn = document.getElementById("solve");
 const rerollBtn = document.getElementById("reroll");
+const statusIndicator = document.getElementById("status-indicator");
 
 let lastChunks = [];
+
+function showWorkingIndicator() {
+  statusIndicator?.classList.add("visible");
+}
+
+function hideWorkingIndicator() {
+  statusIndicator?.classList.remove("visible");
+}
+
+function waitForPaint() {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
 
 function tokenizeParagraph(text) {
   return (text.toLowerCase().match(/[a-z']+/g) || []).filter(Boolean);
@@ -401,25 +416,34 @@ function renderInterleaved(chunks) {
   `;
 }
 
-function solveFromInput() {
+async function solveFromInput() {
   const text = sourceInput.value.trim();
   if (!text) {
     output.innerHTML = '<div class="empty">Please paste some text first.</div>';
+    hideWorkingIndicator();
     return;
   }
+
+  showWorkingIndicator();
+  await waitForPaint();
   lastChunks = buildChunks(text);
   renderInterleaved(lastChunks);
+  hideWorkingIndicator();
 }
 
 solveBtn.addEventListener("click", solveFromInput);
 
-rerollBtn.addEventListener("click", () => {
+rerollBtn.addEventListener("click", async () => {
   if (lastChunks.length === 0) {
-    solveFromInput();
+    await solveFromInput();
     return;
   }
+
+  showWorkingIndicator();
+  await waitForPaint();
   renderInterleaved(lastChunks);
+  hideWorkingIndicator();
 });
 
 sourceInput.value = "I have visited him again and found him sitting in a corner brooding. When I came in he threw himself on his knees before me and implored me to let him have a cat; that his salvation depended upon it.";
-solveFromInput();
+void solveFromInput();
