@@ -286,6 +286,30 @@ function randomChoice(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function splitIntoRandomWords(letters) {
+  const pieces = [];
+  let i = 0;
+
+  while (i < letters.length) {
+    const size = Math.min(letters.length - i, 3 + Math.floor(Math.random() * 3));
+    pieces.push(letters.slice(i, i + size));
+    i += size;
+  }
+
+  return pieces;
+}
+
+function fallbackRandomAnagram(chunk) {
+  const letters = chunk.join("").replace(/[^a-z]/g, "").split("");
+
+  for (let i = letters.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+
+  return `${splitIntoRandomWords(letters.join("")).join(" ")} (??)`;
+}
+
 function generateApproxAnagram(chunk) {
   const forbidden = new Set(
     chunk.filter((word) => !ALLOWED_REUSE.has(word))
@@ -294,7 +318,7 @@ function generateApproxAnagram(chunk) {
   const targetLength = Math.min(6, Math.max(4, chunk.length));
   const availableWords = WORD_POOL.filter((w) => !forbidden.has(w) || ALLOWED_REUSE.has(w));
 
-  let best = { phrase: ["(no close match)"], edits: Infinity };
+  let best = null;
 
   for (let attempt = 0; attempt < 1400; attempt += 1) {
     const bag = new Map(sourceBag);
@@ -334,30 +358,53 @@ function generateApproxAnagram(chunk) {
     const omissions = Array.from(bag.values()).reduce((sum, n) => sum + n, 0);
     const edits = omissions + substitutions;
 
-    if (edits < best.edits) best = { phrase, edits };
-    if (edits <= 5) return phrase.join(" ");
+    if (!best || edits < best.edits) best = { phrase: phrase.join(" "), edits };
+    if (edits <= 5) return { phrase: phrase.join(" "), edits, fallback: false };
   }
 
-  return `${best.phrase.join(" ")} (approx edits: ${best.edits})`;
+  if (!best || best.edits > 5) {
+    return { phrase: fallbackRandomAnagram(chunk), edits: "??", fallback: true };
+  }
+
+  return { phrase: best.phrase, edits: best.edits, fallback: false };
 }
 
 function renderInterleaved(chunks) {
-  const lines = [];
-  for (const chunk of chunks) {
-    const original = chunk.join(" ");
-    const anagram = generateApproxAnagram(chunk);
-    lines.push(original);
-    lines.push(anagram);
-    lines.push("");
+  if (chunks.length === 0) {
+    output.innerHTML = '<div class="empty">No chunks generated yet.</div>';
+    return;
   }
 
-  output.textContent = lines.join("\n").trim() || "No chunks generated yet.";
+  const rows = chunks.map((chunk) => {
+    const original = chunk.join(" ");
+    const result = generateApproxAnagram(chunk);
+    const editReadout = result.fallback ? "??" : `~${result.edits}`;
+
+    return `
+      <tr>
+        <td>
+          <div>${original}</div>
+          <div><strong>${result.phrase}</strong></div>
+        </td>
+        <td class="edits-col">${editReadout}</td>
+      </tr>
+    `;
+  }).join("");
+
+  output.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>Chunk + Approximate Anagram</th><th class="edits-col">Approx. edits</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
 function solveFromInput() {
   const text = sourceInput.value.trim();
   if (!text) {
-    output.textContent = "Please paste some text first.";
+    output.innerHTML = '<div class="empty">Please paste some text first.</div>';
     return;
   }
   lastChunks = buildChunks(text);
@@ -374,5 +421,5 @@ rerollBtn.addEventListener("click", () => {
   renderInterleaved(lastChunks);
 });
 
-sourceInput.value = "This demo takes your short paragraph and reshuffles it into rough anagram-like lines that keep the spirit but not perfection.";
+sourceInput.value = "I have visited him again and found him sitting in a corner brooding. When I came in he threw himself on his knees before me and implored me to let him have a cat; that his salvation depended upon it.";
 solveFromInput();
