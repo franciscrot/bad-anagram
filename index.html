@@ -57,26 +57,52 @@
       }
       button.secondary { background: #ffd478; }
       #output {
-        white-space: pre-wrap;
-        line-height: 1.5;
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.24);
         border-radius: 10px;
-        padding: 0.8rem;
+        padding: 0.2rem;
         min-height: 130px;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        text-align: left;
+        vertical-align: top;
+        padding: 0.6rem;
+      }
+      th {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.85;
+      }
+      tr + tr td {
+        border-top: 1px solid rgba(255, 255, 255, 0.16);
+      }
+      .edits-col {
+        width: 130px;
+        border-left: 1px solid rgba(255, 255, 255, 0.22);
+        padding-left: 1.1rem;
+      }
+      .empty {
+        padding: 0.8rem;
+        opacity: 0.85;
       }
     </style>
   </head>
   <body>
     <main>
       <h1>Approximate Anagrams (Not Perfect Ones)</h1>
-      <p>Paste a short paragraph. We'll split it into small chunks and generate "close-enough" anagrams.</p>
+      <p>Paste a short paragraph. We'll split it into small chunks and generate "close-enough" anagrams. This solver is rough, not great, and can occasionally hang or take a while before producing something usable.</p>
       <textarea id="source" placeholder="Paste text here..."></textarea>
       <div class="controls">
         <button id="solve">Generate</button>
         <button id="reroll" class="secondary">Reroll</button>
       </div>
-      <div id="output">Your interleaved chunks and approximate anagrams will appear here.</div>
+      <div id="output"><div class="empty">Your chunks, approximate anagrams, and edit estimates will appear here.</div></div>
     </main>
     <script src="app.js"></script>
   </body>
